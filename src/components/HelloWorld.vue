@@ -1,46 +1,86 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
+    <img alt="Vue logo" src="../assets/imgs/loader.gif" v-if="this.showloader">
+    <ul class="name-list">
+      <li>Bruna Sayuri</li>
+      <li>Luana Monteiro</li>
+      <li>Jonas Ribeiro</li>
+      <li>Rodrigo Normando</li>
     </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
+    <button v-on:click="getProducts">Ver produtos</button>
+    <div v-if="this.prodLoaded" class="table">
+      <table>
+        <tr>
+          <th>Nome do Produto</th>
+          <th>Descrição</th>
+        </tr>
+        <tr v-for="prod in products" v-bind:key="prod._id">
+          <td>{{ prod.name }}</td>
+          <td>{{ prod.description }}</td>
+        </tr>
+      </table>
+    </div>
   </div>
 </template>
 
 <script>
+
+import firebase from "firebase";
+
+
 export default {
-  name: 'HelloWorld',
+  name: "HelloWorld",
   props: {
     msg: String
+  },
+  data: () => {
+    return {
+      db: undefined,
+      showloader: false,
+      prodLoaded: false,
+      products: []
+    };
+  },
+  methods: {
+    getProducts() {
+      this.product = [];
+      this.showloader = true;
+      this.setDatabase();
+      this.db
+        .collection("produto")
+        .get()
+        .then(snapshot => {
+          snapshot.docs.forEach(element => this.products.push({ ...element.data(), _id: element.id }));
+          this.prodLoaded = !this.prodLoaded;
+          setTimeout(() => (this.showloader = !this.showloader), 1000);
+        });
+    },
+    setDatabase() {
+      this.db = firebase.firestore();
+      this.db.settings({});
+    }
   }
-}
+};
 </script>
+<style>
+.table {
+display: flex;
+justify-content: center;
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
+}
+p,
+h1,
+h2,
+h3,
+td,
+th,
+label {
+  color: antiquewhite;
+}
+h1 {
+  margin: 0;
+}
 h3 {
   margin: 40px 0 0;
 }
@@ -54,5 +94,59 @@ li {
 }
 a {
   color: #42b983;
+}
+body {
+  background-color: #191f26;
+}
+.hello {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    padding: 40px 0;
+}
+img {
+  margin-top: 10px;
+}
+.name-list {
+  color: #ffffff;
+  list-style-type: disc;
+}
+button {
+  width: 210px;
+  margin: 20px auto;
+  border: 1px solid #fff;
+  border-radius: 8px;
+  background: transparent;
+  padding: 20px 10px;
+  color: #fff;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+button:hover{
+	text-shadow: 0 0 2px #fff;
+  border-color:#fff;
+  box-shadow: 0 0 5px 0 #fff;
+}
+
+ul {
+  display: flex;
+   flex-wrap: wrap;
+   justify-content: center;
+}
+
+li {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+
+}
+
+li:before {
+    content: "";
+    background: url(/img/loader.960a1abf.gif) no-repeat center;
+    width: 73px;
+    height: 74px;
+    display: flex;
+    background-size: 150px;
 }
 </style>
