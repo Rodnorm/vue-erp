@@ -56,6 +56,10 @@ export default {
       emailError: null
     };
   },
+  mounted() {
+    var emailScript = document.createElement('script');
+        emailScript.setAttribute('src','https://smtpjs.com/v3/smtp.js');
+  },
   methods: {
     getProducts() {
       this.products = [];
