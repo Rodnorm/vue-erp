@@ -76,7 +76,34 @@
             </tr>
           </table>
         </div>
-        <button v-on:click="saveUpdates">Salvar Alterações e Finalizar</button>
+        <div class="flex"> 
+          <button v-on:click="viewHistory">Visualizar Histórico</button>
+          <button v-on:click="saveUpdates">Salvar Alterações e Finalizar</button>
+        </div>
+        <div v-if="ordersHistory.length">
+          <div class="container">
+            <div class="card" v-for="history in ordersHistory" v-bind:key="history._id">
+              <h3 class="title">Histórico</h3>
+              <div class="bar">
+                <div class="emptybar"></div>
+                <div class="filledbar"></div>
+              </div>
+              <div class="circle">
+                <svg version="1.1" xmlns="http://www.w3.org/2000/svg">
+                  <circle class="stroke" cx="60" cy="60" r="50"/>
+                </svg>
+                <div class="textCard"> 
+                  <p> Origem: {{ history.origem }}</p>
+                  <p> Produto: {{ history.produto }}</p>
+                  <p> Quantidade Anterior: {{ history.quantidadeAnterior }}</p>
+                  <p> Quantidade Nova: {{ history.novaQuantidade }}</p>
+                  <p> Aprovado por: {{ history.quemAprovou }}</p>
+                  <p> Status: {{ history.status ? 'Aprovado' : 'Recusado' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </template>
     <button v-on:click="changeProfile">Trocar perfil</button>
@@ -103,6 +130,9 @@ export default {
       "https://cdn.jsdelivr.net/npm/axios@0.12.0/dist/axios.min.js"
     );
     document.getElementById("app").append(el);
+    if (localStorage.getItem('orders')) {
+      this.orders = JSON.parse(localStorage.getItem('orders'));
+    }
   },
   data: () => {
     return {
@@ -124,7 +154,8 @@ export default {
       emailSent: false,
       updateCounter: 0,
       hasUpdates: false,
-      updateData: {}
+      updateData: {},
+      ordersHistory: []
     };
   },
   methods: {
@@ -138,6 +169,7 @@ export default {
       this.products = [];
       this.showloader = !this.showloader;
       this.setDatabase();
+
       this.db
         .collection("produto")
         .get()
@@ -184,7 +216,7 @@ export default {
           this.updateCounter++;
 
           this.orders.push({
-            _id: this.id(),
+            _id: this.products.find(prod => prod.name === this.productName)._id,
             name: this.productName,
             description: this.products.find(prod =>
               prod.name === this.productName ? prod.description : ""
@@ -194,15 +226,10 @@ export default {
             ownedQuantity: this.products.find(prod =>
               prod.name === this.productName ? prod.quantity : ""
             ).quantity,
-            newQuantity: this.newQuantity
+            newQuantity: this.newQuantity,
+            date: new Date()
           });
-          if (localStorage.getItem("orders")) {
-            let oldLocal = JSON.parse(localStorage.getItem("orders"));
-            oldLocal.push(this.orders);
-            localStorage.setItem("orders", JSON.stringify(oldLocal));
-          } else {
             localStorage.setItem("orders", JSON.stringify(this.orders));
-          }
           setTimeout(() => {
             this.emailSent = false;
             this.userName = '';
@@ -213,23 +240,42 @@ export default {
           }, 2000);
         });
     },
-    id() {
-      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(
-        c
-      ) {
-        var r = (Math.random() * 16) | 0,
-          v = c == "x" ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
+    saveUpdates() {
+      this.setDatabase();
+      this.orders.map(order => {
+        this.db.collection("produto").doc(order._id)
+        .update({
+          quantity: order.newQuantity
+        })
+        this.db.collection("pedidos").add({
+          novaQuantidade: order.newQuantity,
+          origem: order.origin,
+          produto: order.name,
+          quantidadeAnterior: order.ownedQuantity,
+          quemAprovou: 'Super User',
+          status: order.approved,
+          dataAprovacao: new Date(),
+          dataRequisicao: order.date
+        });
       });
+      localStorage.clear('orders');
+      this.orders = [];
     },
-    saveUpdates() {},
     changeStatus(order) {
-      debugger;
       this.orders.map(ord => {
         if (order._id === ord._id) {
           ord.approved = event.target.checked;
         }
       });
+    },
+    viewHistory() {
+      this.setDatabase();
+      this.db.collection('pedidos').get().then(snapshot => {
+        snapshot.docs.forEach(element => {
+          this.ordersHistory.push({ ...element.data(), _id: element.id})
+        });
+      });
+      console.log(this.ordersHistory)
     }
   }
 };
@@ -273,8 +319,8 @@ a {
   color: #42b983;
 }
 
-body {
-  background-color: #191f26;
+body, html, .md-theme-default {
+  background-color: #191f26 !important;
 }
 
 .hello {
@@ -411,5 +457,101 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
+}
+
+.container {
+  position: relative;
+  height: 300px;
+  width: 700px;
+  left: calc(50% - 300px);
+  display: flex;
+  left: 5rem;
+  flex-wrap: wrap
+}
+
+.card {
+  display: flex;
+  height: 280px;
+  width: 200px;
+  background-color: #17141d;
+  border-radius: 10px;
+  box-shadow: -1rem 0 3rem #000;
+  transition: 0.4s ease-out;
+  position: relative;
+  left: 0px;
+}
+
+.card:not(:first-child) {
+    margin-left: -50px;
+}
+
+.card:hover {
+  transform: translateY(-20px);
+  transition: 0.4s ease-out;
+}
+
+.card:hover ~ .card {
+  position: relative;
+  left: 50px;
+  transition: 0.4s ease-out;
+}
+
+.title {
+  color: white;
+  font-weight: 300;
+  position: absolute;
+  left: 20px;
+  top: 15px;
+}
+
+.bar {
+  position: absolute;
+  top: 100px;
+  left: 20px;
+  height: 5px;
+  width: 150px;
+}
+
+.emptybar {
+  background-color: #2e3033;
+  width: 100%;
+  height: 100%;
+}
+
+.filledbar {
+  position: absolute;
+  top: 0px;
+  z-index: 3;
+  width: 0px;
+  height: 100%;
+  background: rgb(0,154,217);
+  background: linear-gradient(90deg, rgba(0,154,217,1) 0%, rgba(217,147,0,1) 65%, rgba(255,186,0,1) 100%);
+  transition: 0.6s ease-out;
+}
+
+.card:hover .filledbar {
+  width: 120px;
+  transition: 0.4s ease-out;
+}
+
+svg {
+  fill: #17141d;
+  stroke-width: 2px;
+}
+
+.card:hover .stroke {
+  stroke-dashoffset: 100;
+  transition: 0.6s ease-out;
+}
+.flex {
+  display: flex
+}
+.textCard {
+  font-family:Arial, Helvetica, sans-serif;
+  text-align: justify;
+  padding: 1.5rem;
+  margin-top: -4rem;
+  line-height: 0.5;
+  font-size: small;
 }
 </style>
