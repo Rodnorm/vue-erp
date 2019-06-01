@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <HelloWorld msg="D.Evolution ERP Sample"/>
+    <HelloWorld msg="D.Evolution ERP Normal User"/>
   </div>
 </template>
 

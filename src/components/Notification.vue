@@ -1,5 +1,14 @@
 <template>
-    <div v-bind:class="{ showNotification : 'showNotification' }" id="notification">Email enviado com sucesso</div>
+    <div>
+        <ul class="name-list">
+            <li>Bruna Sayuri</li>
+            <li>Luana Monteiro</li>
+            <li>Jonas Ribeiro</li>
+            <li>Rodrigo Normando</li>
+        </ul>
+        <button v-on:click="getProducts">Ver produtos</button>
+        <Loader v-if="this.showloader"/>
+    </div>
 </template>
 
 <script>

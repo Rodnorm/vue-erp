@@ -1,8 +1,8 @@
 <template>
 
   <div class="hello">
-    <template v-if="this.noAdm">
-      <h1>{{ msg }}</h1>
+    <template>
+      <h1>{{ this.noAdm ? msg : this.msg.replace('Normal', 'Super') }}</h1>
 
       <ul class="name-list">
         <li>Bruna Sayuri</li>
@@ -10,10 +10,9 @@
         <li>Jonas Ribeiro</li>
         <li>Rodrigo Normando</li>
       </ul>
-      <button v-on:click="getProducts">Ver produtos</button>
+      <button v-on:click="getProducts" v-if="this.noAdm">Ver produtos</button>
       <Loader v-if="this.showloader"/>
-      <Notification :showNotification="this.showNotification" />
-      <div v-if="this.prodLoaded && !this.showloader" class="table">
+      <div v-if="this.prodLoaded && !this.showloader && this.noAdm" class="table">
         <table>
           <tr>
             <th class="table-title">Nome do Produto</th>
@@ -26,11 +25,11 @@
             <td>{{ prod.quantity }}</td>
           </tr>
         </table>
+        <button v-on:click="hideProducts"> Esconder Produtos</button>
       </div>
-      <button
-        v-on:click="showOrderPanel = !showOrderPanel"
-      >{{ this.showOrderPanel ? this.panelMessage[0] : this.panelMessage[1] }}</button>
-      <div v-if="this.showOrderPanel" class="order-panel">
+      <button v-if="this.noAdm" v-on:click="showOrderPanel = !showOrderPanel">
+        {{ this.showOrderPanel ? this.panelMessage[0] : this.panelMessage[1] }}</button>
+      <div v-if="this.showOrderPanel && this.noAdm" class="order-panel">
         <input v-model="userName" placeholder="insira seu nome" v-if="!this.emailSent">
         <input v-model="productName" placeholder="nome do produto" v-if="!this.emailSent">
         <input
@@ -43,9 +42,34 @@
         <button v-on:click="sendEmail" v-if="!this.emailSent">Enviar</button>
       <Loader v-if="this.emailSent" class="emailSent"/>
       </div>
-    </template>
-    <template v-if="!this.noAdm">
-      <p> Olá, ADM </p>
+      <div v-if="!this.noAdm">
+        <h1 id="pedidos">Pedidos</h1>
+        <div class="table">
+          <table>
+            <tr>
+              <th class="table-title">Nome do Produto</th>
+              <th class="table-title">Descrição</th>
+              <th class="table-title">Quantidade Requerida</th>
+              <th class="table-title">Quantidade no estoque</th>
+              <th class="table-title">Origem do pedido</th>
+              <th class="table-title">Aprovado?</th>
+            </tr>
+            <tr v-for="order in orders" v-bind:key="order._id">
+              <td>{{ order.name }}</td>
+              <td>{{ order.description }}</td>
+              <td>{{ order.requestedQuantity }}</td>
+              <td>{{ order.ownedQuantity }}</td>
+              <td>{{ order.origin }}</td>
+              <td>
+                <label class="switch">
+                  <input type="checkbox">
+                  <span class="slider round"></span>
+                </label>    
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
     </template>
     <button v-on:click="changeProfile"> Trocar perfil </button>
   </div>
@@ -63,7 +87,7 @@ export default {
   },
   props: {
     msg: String
-  },   
+  },
   mounted() {
     const el = document.createElement('script');
     el.setAttribute('src','https://cdn.jsdelivr.net/npm/axios@0.12.0/dist/axios.min.js')
@@ -73,13 +97,14 @@ export default {
   data: () => {
     return {
       db: undefined,
+      orders: [],
       noAdm: true,
       showNotification: false,
       showloader: false,
       prodLoaded: false,
       products: [],
       showOrderPanel: false,
-      panelMessage: ["Cancelar ordem", "Criar ordem"],
+      panelMessage: ["Cancelar pedido", "Criar pedido"],
       userName: '',
       productName: "",
       email: "",
@@ -88,10 +113,14 @@ export default {
       emailSent: false,
       updateCounter: 0,
       hasUpdates: false,
-      updateData: {}
+      updateData: {},
+      requestedQuantity: 0
     };
   },
   methods: {
+    hideProducts() {
+      this.prodLoaded = false
+    },
     changeProfile() {
       this.noAdm = !this.noAdm;
     },
@@ -142,7 +171,29 @@ export default {
           productName: this.productName
           };
           this.updateCounter++;
+          
+          this.orders.push({
+            _id: this.id(),
+            name: this.productName,
+            requestedQuantity: this.requestedQuantity,
+            description: this.products.find(prod => prod.name === this.productName ? prod.description: '').description,
+            origin: 'Normal User',
+            ownedQuantity: this.products.find(prod => prod.name === this.productName ? prod.quantity: '').quantity
+          });
+          if (localStorage.getItem('orders')) {
+            let oldLocal = JSON.parse(localStorage.getItem('orders'));
+            oldLocal.push(this.orders);
+            localStorage.setItem('orders', JSON.stringify(oldLocal));
+          } else {
+            localStorage.setItem('orders', JSON.stringify(this.orders));
+          }
         setTimeout(() => this.emailSent = false, 2000);
+      });
+    },
+    id() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
       });
     }
   }
@@ -152,6 +203,7 @@ export default {
 .table {
   display: flex;
   justify-content: center;
+  flex-direction: column;
 }
 
 p,
@@ -265,5 +317,66 @@ input {
 .emailSent {
   height: 17rem;
   width: 30rem;
+}
+#pedidos {
+  margin-bottom: 2rem;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 23px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 12px;
+  bottom: 3px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
 }
 </style>
