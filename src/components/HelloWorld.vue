@@ -63,7 +63,7 @@ export default {
   },
   props: {
     msg: String
-  },
+  },   
   mounted() {
     const el = document.createElement('script');
     el.setAttribute('src','https://cdn.jsdelivr.net/npm/axios@0.12.0/dist/axios.min.js')
