@@ -1,45 +1,53 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
 
-    <ul class="name-list">
-      <li>Bruna Sayuri</li>
-      <li>Luana Monteiro</li>
-      <li>Jonas Ribeiro</li>
-      <li>Rodrigo Normando</li>
-    </ul>
-    <button v-on:click="getProducts">Ver produtos</button>
-    <Loader/>
-    <Notification :showNotification="this.showNotification" />
-    <div v-if="this.prodLoaded && !this.showloader" class="table">
-      <table>
-        <tr>
-          <th class="table-title">Nome do Produto</th>
-          <th class="table-title">Descrição</th>
-          <th class="table-title">Quantidade</th>
-        </tr>
-        <tr v-for="prod in products" v-bind:key="prod._id">
-          <td>{{ prod.name }}</td>
-          <td>{{ prod.description }}</td>
-          <td>{{ prod.quantity }}</td>
-        </tr>
-      </table>
-    </div>
-    <button
-      v-on:click="showOrderPanel = !showOrderPanel"
-    >{{ this.showOrderPanel ? this.panelMessage[0] : this.panelMessage[1] }}</button>
-    <div v-if="this.showOrderPanel" class="order-panel">
-      <input v-model="userName" placeholder="insira seu nome">
-      <input v-model="productName" placeholder="nome do produto">
-      <input
-        v-model="email"
-        type="email"
-        placeholder="email"
-        v-bind:class="this.emailError ? 'hasError': ''"
-        v-on:keyup="validateEmail()"
-      >
-      <button v-on:click="sendEmail">Enviar</button>
-    </div>
+  <div class="hello">
+    <template v-if="this.noAdm">
+      <h1>{{ msg }}</h1>
+
+      <ul class="name-list">
+        <li>Bruna Sayuri</li>
+        <li>Luana Monteiro</li>
+        <li>Jonas Ribeiro</li>
+        <li>Rodrigo Normando</li>
+      </ul>
+      <button v-on:click="getProducts">Ver produtos</button>
+      <Loader v-if="this.showloader"/>
+      <Notification :showNotification="this.showNotification" />
+      <div v-if="this.prodLoaded && !this.showloader" class="table">
+        <table>
+          <tr>
+            <th class="table-title">Nome do Produto</th>
+            <th class="table-title">Descrição</th>
+            <th class="table-title">Quantidade</th>
+          </tr>
+          <tr v-for="prod in products" v-bind:key="prod._id">
+            <td>{{ prod.name }}</td>
+            <td>{{ prod.description }}</td>
+            <td>{{ prod.quantity }}</td>
+          </tr>
+        </table>
+      </div>
+      <button
+        v-on:click="showOrderPanel = !showOrderPanel"
+      >{{ this.showOrderPanel ? this.panelMessage[0] : this.panelMessage[1] }}</button>
+      <div v-if="this.showOrderPanel" class="order-panel">
+        <input v-model="userName" placeholder="insira seu nome" v-if="!this.emailSent">
+        <input v-model="productName" placeholder="nome do produto" v-if="!this.emailSent">
+        <input
+          v-model="email"
+          type="email"
+          placeholder="email"
+          v-bind:class="this.emailError ? 'hasError': ''"
+          v-on:keyup="validateEmail()" v-if="!this.emailSent"
+        >
+        <button v-on:click="sendEmail" v-if="!this.emailSent">Enviar</button>
+      <Loader v-if="this.emailSent" class="emailSent"/>
+      </div>
+    </template>
+    <template v-if="!this.noAdm">
+      <p> Olá, ADM </p>
+    </template>
+    <button v-on:click="changeProfile"> Trocar perfil </button>
   </div>
 </template>
 
@@ -57,32 +65,36 @@ export default {
     msg: String
   },
   mounted() {
-    const element = document.createElement('script');
     const el = document.createElement('script');
     el.setAttribute('src','https://cdn.jsdelivr.net/npm/axios@0.12.0/dist/axios.min.js')
-    element.setAttribute('src','https://cdn.emailjs.com/sdk/2.3.2/email.min.js')
-    document.getElementById('app').append(element);
     document.getElementById('app').append(el);
-    setTimeout(() => emailjs.init("user_0nggQHB17fGofTTX0HHFZ"), 1000);
 
   },
   data: () => {
     return {
       db: undefined,
+      noAdm: true,
       showNotification: false,
       showloader: false,
       prodLoaded: false,
       products: [],
       showOrderPanel: false,
-      panelMessage: ["Esconder", "Mostrar"],
+      panelMessage: ["Cancelar ordem", "Criar ordem"],
       userName: '',
       productName: "",
       email: "",
       emailError: null,
-      Email: null
+      Email: null,
+      emailSent: false,
+      updateCounter: 0,
+      hasUpdates: false,
+      updateData: {}
     };
   },
   methods: {
+    changeProfile() {
+      this.noAdm = !this.noAdm;
+    },
     getProducts() {
       this.products = [];
       this.showloader = !this.showloader;
@@ -112,7 +124,7 @@ export default {
       this.emailError = !emailPattern.test(this.email);
     },
     sendEmail() {
-
+      this.emailSent = true;
       axios.post(
         'http://localhost:3000/email',
         { 
@@ -123,8 +135,14 @@ export default {
             }
         })
       .then(resp => {
-        this.showNotification = true;
-        setTimeout(() => this.showNotification = false, 5000);
+        this.hasUpdates = true;
+        this.updateData = { 
+          email: this.email,
+          name: this.name,
+          productName: this.productName
+          };
+          this.updateCounter++;
+        setTimeout(() => this.emailSent = false, 2000);
       });
     }
   }
@@ -243,5 +261,9 @@ input {
 }
 .hasError {
   border: 2px solid red;
+}
+.emailSent {
+  height: 17rem;
+  width: 30rem;
 }
 </style>

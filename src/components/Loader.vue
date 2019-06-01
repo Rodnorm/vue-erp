@@ -1,20 +1,18 @@
 <template>
-<div>
-    <div class="loaderContainer">
-        <img alt="Vue logo" src="../assets/imgs/loader.gif">
-    </div>
-    <div class="loader-wrapper loader-center">
-        <div class="loader"></div>
-    </div>
-</div>
+    <img alt="Loader" src="../assets/imgs/loader.gif">
 </template>
 
 <script>
-require("@/assets/css/loader.scss");
 export default {
     name: 'Loader'
 }
-// <div *ngIf="showLoader" class="loader-wrapper loader-center">
-//   <div class="loader"></div>
-// </div>
 </script>
+
+<style>
+    img {
+        width: fit-content;
+        height: fit-content;
+        display: flex;
+        align-self: center;
+    }
+</style>

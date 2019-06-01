@@ -20,6 +20,7 @@ export default {
         right: -10px;
         opacity: 0;
         color: whitesmoke;
+        display: none;
         border-radius: 10px 0 0px 10px
     }
     @keyframes notification {
