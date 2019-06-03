@@ -199,45 +199,64 @@ export default {
         return;
       }
       this.emailSent = true;
-      axios
-        .post("http://localhost:3000/email", {
-          email: this.email,
-          name: this.userName,
-          productName: this.productName
-        })
-        .then(resp => {
-          this.hasUpdates = true;
-          this.updateData = {
-            email: this.email,
-            name: this.name,
-            productName: this.productName
-          };
-          this.updateCounter++;
+      this.hasUpdates = true;
+      this.updateData = {
+        email: this.email,
+        name: this.name,
+        productName: this.productName
+      };
+      this.updateCounter++;
 
-          this.orders.push({
-            _id: this.products.find(prod => prod.name === this.productName)._id,
-            name: this.productName,
-            description: this.products.find(prod =>
-              prod.name === this.productName ? prod.description : ""
-            ).description,
-            origin: `Normal User - ${this.userName}`,
-            approved: false,
-            ownedQuantity: this.products.find(prod =>
-              prod.name === this.productName ? prod.quantity : ""
-            ).quantity,
-            newQuantity: this.newQuantity,
-            date: new Date()
-          });
-            localStorage.setItem("orders", JSON.stringify(this.orders));
-          setTimeout(() => {
-            this.emailSent = false;
-            this.userName = '';
-            this.newQuantity = 0;
-            this.productName = '';
-            this.showOrderPanel = false;
-            this.email = '';
-          }, 2000);
-        });
+      this.orders.push({
+        _id: this.products.find(prod => prod.name === this.productName)._id,
+        name: this.productName,
+        description: this.products.find(prod =>
+          prod.name === this.productName ? prod.description : ""
+        ).description,
+        origin: `Normal User - ${this.userName}`,
+        approved: false,
+        ownedQuantity: this.products.find(prod =>
+          prod.name === this.productName ? prod.quantity : ""
+        ).quantity,
+        newQuantity: this.newQuantity,
+        date: new Date()
+      });
+      setTimeout(() => {
+              this.emailSent = false;
+              this.userName = '';
+              this.newQuantity = 0;
+              this.productName = '';
+              this.showOrderPanel = false;
+              this.email = '';
+            }, 2000);
+
+      //criar tabela de requisições
+      //adicionar tag tabela com as requisições para o super user
+      //acesso ao banco para adicionar na tabela de requisições
+
+      
+      // if (this.sendEmailBoolean) {
+      //   this.emailSent = true;
+      //   axios
+      //     .post("http://localhost:3000/email", {
+      //       email: this.email,
+      //       name: this.userName,
+      //       productName: this.productName
+      //     })
+      //     .then(resp => {
+            
+      //         localStorage.setItem("orders", JSON.stringify(this.orders));
+      //       setTimeout(() => {
+      //         this.emailSent = false;
+      //         this.userName = '';
+      //         this.newQuantity = 0;
+      //         this.productName = '';
+      //         this.showOrderPanel = false;
+      //         this.email = '';
+      //       }, 2000);
+      //     });
+      // }  
+
     },
     saveUpdates() {
       this.setDatabase();
