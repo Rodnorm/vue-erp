@@ -155,7 +155,8 @@ export default {
       updateCounter: 0,
       hasUpdates: false,
       updateData: {},
-      ordersHistory: []
+      ordersHistory: [],
+      historyToggler: false
     };
   },
   methods: {
@@ -200,11 +201,9 @@ export default {
       this.emailSent = true;
       axios
         .post("http://localhost:3000/email", {
-          params: {
-            email: this.email,
-            name: this.userName,
-            productName: this.productName
-          }
+          email: this.email,
+          name: this.userName,
+          productName: this.productName
         })
         .then(resp => {
           this.hasUpdates = true;
@@ -269,13 +268,17 @@ export default {
       });
     },
     viewHistory() {
-      this.setDatabase();
-      this.db.collection('pedidos').get().then(snapshot => {
-        snapshot.docs.forEach(element => {
-          this.ordersHistory.push({ ...element.data(), _id: element.id})
+      this.historyToggler = !this.historyToggler;
+      if (this.historyToggler) {
+        this.setDatabase();
+        this.db.collection('pedidos').get().then(snapshot => {
+          snapshot.docs.forEach(element => {
+            this.ordersHistory.push({ ...element.data(), _id: element.id})
+          });
         });
-      });
-      console.log(this.ordersHistory)
+        return;
+      }
+      this.ordersHistory = [];
     }
   }
 };
@@ -466,7 +469,6 @@ input:checked + .slider:before {
   left: calc(50% - 300px);
   display: flex;
   left: 5rem;
-  flex-wrap: wrap
 }
 
 .card {
