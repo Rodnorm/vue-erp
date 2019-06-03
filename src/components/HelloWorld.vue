@@ -30,7 +30,7 @@
         v-if="this.noAdm"
         v-on:click="showOrderPanel = !showOrderPanel"
       >{{ this.showOrderPanel ? this.panelMessage[0] : this.panelMessage[1] }}</button>
-      <div v-on:submit="sendEmail" v-if="this.showOrderPanel && this.noAdm" class="order-panel">
+      <div v-if="this.showOrderPanel && this.noAdm" class="order-panel">
         <input v-model="userName" placeholder="insira seu nome" v-if="!this.emailSent">
         <input v-model="productName" placeholder="nome do produto" v-if="!this.emailSent">
         <input v-model="newQuantity" type="number" placeholder="nova quantidade" v-if="!this.emailSent">
@@ -76,6 +76,21 @@
             </tr>
           </table>
         </div>
+        <h1>Fornecedores</h1>
+        <div class="table">
+          <table>
+            <tr>
+              <th class="table-title">Nome do Fornecedor</th>
+              <th class="table-title">Contato</th>
+              <th class="table-title">Produtos fornecidos</th>
+            </tr>
+            <tr v-for="supply in suppliers" v-bind:key="supply._id">
+              <td>{{ supply.name }}</td>
+              <td>{{ supply.email }}</td>
+              <td>{{ supply.relatedProd }}</td>
+            </tr>
+          </table>
+        </div>
         <div class="flex"> 
           <button v-on:click="viewHistory">Visualizar Histórico</button>
           <button v-on:click="saveUpdates">Salvar Alterações e Finalizar</button>
@@ -93,12 +108,12 @@
                   <circle class="stroke" cx="60" cy="60" r="50"/>
                 </svg>
                 <div class="textCard"> 
-                  <p> Origem: {{ history.origem }}</p>
-                  <p> Produto: {{ history.produto }}</p>
-                  <p> Quantidade Anterior: {{ history.quantidadeAnterior }}</p>
-                  <p> Quantidade Nova: {{ history.novaQuantidade }}</p>
-                  <p> Aprovado por: {{ history.quemAprovou }}</p>
-                  <p> Status: {{ history.status ? 'Aprovado' : 'Recusado' }}</p>
+                  <p> Origem: {{ history.origin }}</p>
+                  <p> Produto: {{ history.name }}</p>
+                  <p> Quantidade Anterior: {{ history.ownedQuantity }}</p>
+                  <p> Quantidade Nova: {{ parseInt(history.newQuantity) + parseInt(history.ownedQuantity)  }}</p>
+                  <p> Aprovado por: {{ history.approvedBy }}</p>
+                  <p> Status: {{ history.approved ? 'Aprovado' : 'Recusado' }}</p>
                 </div>
               </div>
             </div>
@@ -137,6 +152,7 @@ export default {
   data: () => {
     return {
       db: undefined,
+      suppliers: [],
       orders: [],
       noAdm: true,
       showNotification: false,
@@ -160,11 +176,42 @@ export default {
     };
   },
   methods: {
+    getSuppliers() {
+      this.products = [];
+      this.suppliers = [];
+      this.setDatabase();
+      this.db.collection("produto").get().then(snapshot => {
+          snapshot.docs.forEach(element => {
+
+            this.products.push({ ...element.data(), _id: element.id });
+            if (this.products.length === snapshot.docs.length) {
+              this.db.collection('fornecedores').get().then(snapshot => {
+                  snapshot.docs.forEach(element => {
+                    this.suppliers.push({ ...element.data(), _id: element.id, relatedProd: this.products.find(prod => prod._id === element.data().relatedProductId).name })
+                  });
+                });
+            }
+          });
+        });
+    },
     hideProducts() {
       this.prodLoaded = false;
     },
     changeProfile() {
       this.noAdm = !this.noAdm;
+      this.orders = [];
+      if (!this.noAdm) {
+        this.getOrders();
+        this.getSuppliers();
+      }
+    },
+    getOrders() {
+      this.setDatabase();
+        this.db.collection('pedidos').get().then(snapshot => {
+          snapshot.docs.forEach(element => {
+            this.orders.push({ ...element.data(), _id: element.id})
+          });
+        });
     },
     getProducts() {
       this.products = [];
@@ -179,6 +226,7 @@ export default {
             this.products.push({ ...element.data(), _id: element.id })
           );
           this.prodLoaded = true;
+          console.log(this.products)
           setTimeout(() => (this.showloader = !this.showloader), 1000);
         });
     },
@@ -193,8 +241,9 @@ export default {
       this.emailError = !emailPattern.test(this.email);
     },
     sendEmail() {
-      event.preventDefault();
-      if (!this.products.find(prod => prod.name === this.productName)) {
+      this.setDatabase();
+      const action = () => {
+        if (!this.products.find(prod => prod.name === this.productName)) {
         throw Error("nome do produto não foi encontrado");
         return;
       }
@@ -207,8 +256,8 @@ export default {
       };
       this.updateCounter++;
 
-      this.orders.push({
-        _id: this.products.find(prod => prod.name === this.productName)._id,
+      const order = {
+        _idProduto: this.products.find(prod => prod.name === this.productName)._id,
         name: this.productName,
         description: this.products.find(prod =>
           prod.name === this.productName ? prod.description : ""
@@ -219,8 +268,15 @@ export default {
           prod.name === this.productName ? prod.quantity : ""
         ).quantity,
         newQuantity: this.newQuantity,
-        date: new Date()
-      });
+        requestedDate: new Date(),
+        approvedDate: '',
+        approvedBy: '',
+        _id: this.products.find(prod => prod.name === this.productName)._id + this.products.find(prod => prod.name === this.productName)._id
+      }
+
+      this.orders.push(order);
+      this.setDatabase();
+      this.db.collection("pedidos").add(order);
       setTimeout(() => {
               this.emailSent = false;
               this.userName = '';
@@ -229,6 +285,21 @@ export default {
               this.showOrderPanel = false;
               this.email = '';
             }, 2000);
+      };
+      
+      if (!this.products.length) {
+        this.db
+          .collection("produto")
+          .get()
+          .then(snapshot => snapshot.docs.forEach(element => {
+            this.products.push({ ...element.data(), _id: element.id });
+            if (this.products.length === snapshot.docs.length) {
+              action();
+            }
+          }));
+      } else {
+        action();
+      }
 
       //criar tabela de requisições
       //adicionar tag tabela com as requisições para o super user
@@ -244,7 +315,6 @@ export default {
       //       productName: this.productName
       //     })
       //     .then(resp => {
-            
       //         localStorage.setItem("orders", JSON.stringify(this.orders));
       //       setTimeout(() => {
       //         this.emailSent = false;
@@ -261,20 +331,18 @@ export default {
     saveUpdates() {
       this.setDatabase();
       this.orders.map(order => {
-        this.db.collection("produto").doc(order._id)
+        this.db.collection("produto").doc(order._idProduto)
         .update({
-          quantity: order.newQuantity
+          quantity: parseInt(order.newQuantity) + parseInt(order.ownedQuantity)
         })
-        this.db.collection("pedidos").add({
-          novaQuantidade: order.newQuantity,
-          origem: order.origin,
-          produto: order.name,
-          quantidadeAnterior: order.ownedQuantity,
-          quemAprovou: 'Super User',
-          status: order.approved,
-          dataAprovacao: new Date(),
-          dataRequisicao: order.date
-        });
+        if (order.edited) {
+          this.db.collection("pedidos").doc(order._id).update({
+            approvedBy: 'Super User',
+            approved: order.approved,
+            approvedDate: new Date()
+          });
+          console.log(`O Fornecedor ${this.suppliers.find(sup => sup.relatedProductId === order._idProduto).name} será avisado da sua aprovação`)
+        }
       });
       localStorage.clear('orders');
       this.orders = [];
@@ -283,6 +351,7 @@ export default {
       this.orders.map(ord => {
         if (order._id === ord._id) {
           ord.approved = event.target.checked;
+          ord.edited = true;
         }
       });
     },
