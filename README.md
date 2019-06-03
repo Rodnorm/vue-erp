@@ -57,3 +57,5 @@ Caso alguma alteração na coluna ‘aprovado’ seja feita, é possível salvar
 Passo 5 - 
 Tela de histórico: Exibe de forma sucinta as informações das requisições já utilizadas.
 
+Tecnologias utilizadas:
+VueJs, Firebase e Sendgrid

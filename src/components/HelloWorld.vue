@@ -278,6 +278,7 @@ export default {
       this.setDatabase();
       this.db.collection("pedidos").add(order);
       setTimeout(() => {
+        alert('Tudo certo!');
               this.emailSent = false;
               this.userName = '';
               this.newQuantity = 0;
@@ -300,10 +301,6 @@ export default {
       } else {
         action();
       }
-
-      //criar tabela de requisições
-      //adicionar tag tabela com as requisições para o super user
-      //acesso ao banco para adicionar na tabela de requisições
 
       
       // if (this.sendEmailBoolean) {
@@ -341,7 +338,7 @@ export default {
             approved: order.approved,
             approvedDate: new Date()
           });
-          console.log(`O Fornecedor ${this.suppliers.find(sup => sup.relatedProductId === order._idProduto).name} será avisado da sua aprovação`)
+          alert(`O Fornecedor ${this.suppliers.find(sup => sup.relatedProductId === order._idProduto).name} será avisado da sua modificação`)
         }
       });
       localStorage.clear('orders');
